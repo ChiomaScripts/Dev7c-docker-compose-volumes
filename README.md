@@ -106,7 +106,7 @@ These commands only show sockets **currently listening**. They did not answer my
 
 ![Windows listening ports checked from Git Bash](assets/screenshots/windows-listening-ports-git-bash.png)
 
-*Evidence — notes page 5: checking active Windows listeners. This was useful, but insufficient for stopped containers.*
+*Evidence 1 — Checking active Windows listeners. This was useful, but insufficient for stopped containers.*
 
 I next tried:
 
@@ -116,7 +116,7 @@ docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 ![Docker ps showing stopped Dev7a containers](assets/screenshots/docker-ps-stopped-containers.png)
 
-*Evidence — notes page 6: stopped containers were listed, but their published host-port mappings were not reliably displayed.*
+*Evidence 2 — Stopped containers were listed, but their published host-port mappings were not reliably displayed.*
 
 The breakthrough was inspecting each container's saved `HostConfig.PortBindings`:
 
@@ -129,7 +129,7 @@ done
 
 ![Inspecting configured port bindings for stopped containers](assets/screenshots/docker-inspect-stopped-port-bindings.png)
 
-*Evidence — notes page 6: the inspect loop revealed the old host-to-container mappings and informed the new Compose port choices.*
+*Evidence 3 — The inspect loop revealed the old host-to-container mappings and informed the new Compose port choices.*
 
 This taught me a distinction I will reuse: **configured** does not mean **currently occupied**. A stopped container retains its port configuration but ordinarily does not hold an active host listener. Starting it later can still conflict with another running service that has claimed the same binding. I chose distinct host ports for Dev7c to keep the environments separate.
 
@@ -153,7 +153,7 @@ Before launching Compose, I **started the Nexus service** on the remote server s
 
 ![Nexus service started on the DigitalOcean server](assets/screenshots/nexus-service-started.png)
 
-*Evidence — notes page 7: starting the Nexus service before deployment.*
+*Evidence 4 — Starting the Nexus service before deployment.*
 
 For a remote registry, Docker may also require `docker login`, and the client must be configured to permit this lab's HTTP registry if applicable. HTTP/insecure-registry configuration is **lab-specific**, not a recommended production deployment posture. Prefer HTTPS/TLS, appropriate credentials and a protected registry in real environments.
 
@@ -320,7 +320,7 @@ Because the file was named `docker-compose.yaml` and the command ran from the pr
 
 ![Docker Compose creating and starting the three services](assets/screenshots/compose-up-and-container-status.png)
 
-*Evidence — notes page 7: initial Compose startup and service-status output.*
+*Evidence 5 — Initial Compose startup and service-status output.*
 
 ### Verify the application UI
 
@@ -328,7 +328,7 @@ With the published port mapping, the Python Girls That Code frontend was accessi
 
 ![Python Girls That Code UI after first Compose launch](assets/screenshots/fastapi-first-compose-launch.png)
 
-*Evidence — notes page 8: FastAPI application running from the Nexus-hosted image under Compose.*
+*Evidence 6 — FastAPI application running from the Nexus-hosted image under Compose.*
 
 ### Verify Mongo Express access and records
 
@@ -336,11 +336,11 @@ Mongo Express was accessible at **`http://localhost:8083`**. The evidence captur
 
 ![Mongo Express login prompt](assets/screenshots/mongo-express-browser-authentication.png)
 
-*Evidence — notes page 9: Mongo Express browser authentication.*
+*Evidence 7 — Mongo Express browser authentication.*
 
 ![Initial record visible in Mongo Express](assets/screenshots/mongo-express-initial-user-record.png)
 
-*Evidence — notes page 9: initial database record visible through the administration UI; email field obscured in the published evidence.*
+*Evidence 8 — Initial database record visible through the administration UI; email field obscured in the published evidence.*
 
 The combined evidence demonstrates two distinct paths to the same database: the FastAPI application's CRUD API and Mongo Express's administrative interface.
 
@@ -375,15 +375,15 @@ docker volume ls
 
 ![Service logs after restarting the Compose application](assets/screenshots/compose-restart-service-logs.png)
 
-*Evidence — notes page 10: application and supporting service logs during the restart/persistence exercise.*
+*Evidence 9 — Application and supporting service logs during the restart/persistence exercise.*
 
 ![Original and new records visible after restarting](assets/screenshots/mongo-express-persisted-records.png)
 
-*Evidence — notes page 10: the `users` collection shows both the original profile and a second profile after restart; email fields obscured.*
+*Evidence 10 — The `users` collection shows both the original profile and a second profile after restart; email fields obscured.*
 
 ![FastAPI interface showing two records after restart](assets/screenshots/fastapi-records-after-restart.png)
 
-*Evidence — notes page 11: the application UI also shows two coder profiles after the persistence test.*
+*Evidence 11 — The application UI also shows two coder profiles after the persistence test.*
 
 ### Why this works
 
@@ -464,31 +464,11 @@ docker compose down
 
 The image is hosted on a **private, lab-managed registry** and may not be publicly accessible or continuously online. This README documents the completed implementation; cloning the repository alone does not guarantee the remote registry is available to third parties. The included `.env.example` contains placeholders, not functioning credentials.
 
----
 
-## 13 — Evidence Index and Screenshot Provenance
-
-All evidence images below were **extracted from the supplied learning-notes document**, not recreated. The first three instructional write-up screenshots are intentionally omitted; their useful concepts are incorporated into the explanatory sections instead.
-
-| Notes page | Position | Evidence filename | README section |
-|---|---|---|---|
-| 5 | Bottom | [`windows-listening-ports-git-bash.png`](assets/screenshots/windows-listening-ports-git-bash.png) | §03 Port investigation |
-| 6 | Top | [`docker-ps-stopped-containers.png`](assets/screenshots/docker-ps-stopped-containers.png) | §03 Port investigation |
-| 6 | Middle | [`docker-inspect-stopped-port-bindings.png`](assets/screenshots/docker-inspect-stopped-port-bindings.png) | §03 Port investigation |
-| 7 | Top | [`nexus-service-started.png`](assets/screenshots/nexus-service-started.png) | §04 Prerequisites |
-| 7 | Bottom | [`compose-up-and-container-status.png`](assets/screenshots/compose-up-and-container-status.png) | §08 Deployment |
-| 8 | Middle | [`fastapi-first-compose-launch.png`](assets/screenshots/fastapi-first-compose-launch.png) | §08 Application validation |
-| 9 | Top | [`mongo-express-browser-authentication.png`](assets/screenshots/mongo-express-browser-authentication.png) | §08 Mongo Express |
-| 9 | Middle | [`mongo-express-initial-user-record.png`](assets/screenshots/mongo-express-initial-user-record.png) | §08 Mongo Express |
-| 10 | Top | [`compose-restart-service-logs.png`](assets/screenshots/compose-restart-service-logs.png) | §09 Persistence test |
-| 10 | Bottom | [`mongo-express-persisted-records.png`](assets/screenshots/mongo-express-persisted-records.png) | §09 Persistence test |
-| 11 | Middle | [`fastapi-records-after-restart.png`](assets/screenshots/fastapi-records-after-restart.png) | §09 Persistence test |
-
-The table is also available as [`assets/screenshots/SCREENSHOT-MAP.md`](assets/screenshots/SCREENSHOT-MAP.md). Email fields in Mongo Express evidence were obscured for publication.
 
 ---
 
-## 14 — Project Reflection and Portfolio Navigation
+## 13 — Project Reflection and Portfolio Navigation
 
 Dev7c was the point at which the Docker exercises began to feel like a **connected deployment workflow**, rather than isolated commands. The port investigation was especially valuable: I moved from asking whether ports had to be declared at all to understanding which services needed external access, why two containers can use the same internal port, and how to inspect configured mappings even when containers are stopped.
 
