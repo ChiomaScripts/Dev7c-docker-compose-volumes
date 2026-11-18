@@ -461,7 +461,7 @@ The image is hosted on a **private, project-managed registry** and may not be pu
 
 ## 13 — Project Reflection and Portfolio Navigation
 
-Dev7c was the point at which the Docker exercises began to feel like a **connected deployment workflow**, rather than isolated commands. The port investigation was especially valuable: I moved from asking whether ports had to be declared at all to understanding which services needed external access, why two containers can use the same internal port, and how to inspect configured mappings even when containers are stopped.
+Dev7c was the point at which Docker began to feel like a **connected deployment workflow**, rather than isolated commands. The port investigation was especially valuable: I moved from asking whether ports had to be declared at all to understanding which services needed external access, why two containers can use the same internal port, and how to inspect configured mappings even when containers are stopped.
 
 The second major lesson was persistence. Running a database container is easy; showing that application records remain after its surrounding stack is torn down and recreated is a stronger demonstration of correct state management. I now have an orchestration file that expresses the topology of my application, and a documented verification trail showing the three services working together.
 
