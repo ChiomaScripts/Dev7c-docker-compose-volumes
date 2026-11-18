@@ -251,9 +251,22 @@ The Dev7a Python source also supports `MONGO_DB_NAME` and `MONGO_COLLECTION_NAME
 
 ## 07 — Health Checks, Startup Dependencies and Restart Policies
 
-### Why a health check was added
+### Why I introduced a MongoDB health check
 
-A started container is not necessarily a **ready database**. MongoDB may still be initialising its data files and accepting connections. A plain `depends_on: [mongodb]` coordinates startup order, but does not wait for database readiness. I therefore added a MongoDB health check and set both dependent services to wait for `condition: service_healthy`.
+One important consideration when orchestrating multiple services is that **a running container does not necessarily mean the application inside it is ready to accept connections**. MongoDB may still be initialising its database engine and preparing its data directory after Docker starts the container.
+
+This matters because both my FastAPI application and Mongo Express depend on MongoDB. Without readiness checks, either service could start before the database is ready, potentially causing connection failures.
+
+A basic dependency specifies startup order:
+
+```yaml
+depends_on:
+  - mongodb
+```
+
+However, starting MongoDB first is not the same as waiting until it can respond to database commands. I therefore added a **MongoDB health check** and configured FastAPI and Mongo Express to wait for its healthy status.
+
+### Implementing the MongoDB health check
 
 ```yaml
 healthcheck:
@@ -266,24 +279,75 @@ healthcheck:
   start_period: 30s
 ```
 
-| Setting | What it does | Why it matters |
+Docker periodically executes this command **inside the MongoDB container**. `mongosh` runs an administrative `ping` command, and a successful response normally produces an `.ok` value of `1`. The shell pipe passes that output to `grep -q 1`, which supplies a success or failure exit status for Docker to interpret.
+
+| Setting | Purpose | Engineering significance |
 |---|---|---|
-| `healthcheck` | Declares a periodic container health test | Tests service responsiveness rather than mere process existence |
-| `CMD-SHELL` | Runs the test through a shell **inside MongoDB's container** | Allows the pipe to `grep` |
-| `mongosh --quiet --eval ...` | Runs a MongoDB `ping` command and prints its `.ok` value | A simple responsiveness signal |
-| `grep -q 1` | Quietly succeeds if the output contains `1` | Supplies an exit code Docker interprets as success/failure |
-| `interval: 10s` | Schedules checks at roughly ten-second intervals | Rechecks health periodically |
-| `timeout: 5s` | Fails a check if it takes too long | Avoids hanging checks |
-| `retries: 10` | Allows ten consecutive counted failures before `unhealthy` | Tolerates temporary failures |
-| `start_period: 30s` | Gives MongoDB an initial grace period for failures | Accommodates startup work |
+| `healthcheck` | Defines a periodic health test | Assesses basic database responsiveness, not just whether the container process exists |
+| `CMD-SHELL` | Runs the test through a shell inside the MongoDB container | Enables the `|` pipe between `mongosh` and `grep` |
+| `mongosh --quiet --eval ...` | Executes an administrative MongoDB `ping` and prints its `.ok` value | Checks for a basic server response |
+| `grep -q 1` | Quietly checks whether the output contains `1` | Returns an exit status Docker can evaluate |
+| `interval: 10s` | Schedules checks approximately every ten seconds | Reassesses health periodically |
+| `timeout: 5s` | Fails an individual check after five seconds | Prevents an unresponsive check from hanging indefinitely |
+| `retries: 10` | Marks the container unhealthy after ten consecutive counted failures | Tolerates temporary failures |
+| `start_period: 30s` | Provides an initial grace period for failed checks | Allows MongoDB time to initialise |
 
-**Limitations:** This is a lightweight readiness probe, not an authenticated end-to-end check of the application's database access. The string match is also simplistic; a more robust probe would rely on an unambiguous command exit status. `depends_on: service_healthy` gates initial startup; it does **not** continuously restart FastAPI or Mongo Express if MongoDB becomes unhealthy later.
+The `start_period` does **not** mean Docker waits 30 seconds before checking. Checks can run during this period, and a successful result can establish healthy status earlier.
 
-### Why `restart: unless-stopped` rather than `always`?
+This is a lightweight responsiveness probe, **not an authenticated end-to-end verification** that FastAPI can access the `user-account` database or perform CRUD operations. Its `grep -q 1` match is also simplistic; a more robust future check could evaluate the MongoDB command result unambiguously.
 
-Both policies restart a container after unexpected process exit, once Docker's restart-policy conditions are met. The difference matters when a developer **deliberately stops** a container: `unless-stopped` respects that stop even across Docker daemon restarts, whereas `always` can restart a previously manually stopped container when the daemon restarts. I used `unless-stopped` for a project I intentionally shut down between sessions.
+### Coordinating startup with `depends_on: service_healthy`
 
-**Correction to an early working note:** A restart policy does not inherently mean “Mongo Express keeps restarting until it connects to MongoDB,” nor does an `unhealthy` result alone trigger Docker's restart policy. The process must exit for the restart policy to act. The health-gated `depends_on` is the mechanism used here to coordinate initial readiness.
+Both FastAPI and Mongo Express use:
+
+```yaml
+depends_on:
+  mongodb:
+    condition: service_healthy
+```
+
+This establishes the following initial startup sequence:
+
+1. Docker Compose creates and starts the MongoDB container.
+2. MongoDB initialises its database services and storage.
+3. Docker executes the configured health checks.
+4. When the health check succeeds, MongoDB reports a healthy status.
+5. Docker Compose starts FastAPI and Mongo Express, whose initial startup depends on that status.
+
+This distinction between **startup order** and **service readiness** is useful whenever an application relies on databases or other supporting infrastructure. The dependency is primarily an *initial startup gate*: it does not continuously restart FastAPI or Mongo Express if MongoDB later becomes unhealthy. Applications must still handle temporary database failures appropriately.
+
+### Why I selected `restart: unless-stopped`
+
+I also configured the services with:
+
+```yaml
+restart: unless-stopped
+```
+
+Restart policies govern what Docker does when a container's main process exits and how stopped containers behave across Docker daemon restarts. Two common options are `always` and `unless-stopped`:
+
+| Scenario | `restart: always` | `restart: unless-stopped` |
+|---|---|---|
+| Main process exits unexpectedly | Restarts automatically, subject to Docker's restart-policy rules | Restarts automatically, subject to the same rules |
+| Docker daemon restarts while the container was running | Restarts | Restarts |
+| I deliberately stop the container | Remains stopped initially | Remains stopped |
+| Docker daemon restarts after I deliberately stopped the container | Can restart it | Preserves the stopped state |
+
+I selected `unless-stopped` because Dev7c is a local learning project that I intentionally shut down between sessions. It provides automatic recovery after qualifying process exits while respecting deliberate shutdowns.
+
+A restart policy does **not** automatically restart a container just because its health check reports `unhealthy`. Similarly, if Mongo Express loses its database connection but its main process continues running, the restart policy alone does not guarantee reconnection or a restart. These behaviours require application-level handling or additional operational mechanisms.
+
+### How the three mechanisms work together
+
+| Mechanism | Responsibility |
+|---|---|
+| `healthcheck` | Evaluates basic MongoDB responsiveness |
+| `depends_on: condition: service_healthy` | Waits for initial database readiness before starting dependent services |
+| `restart: unless-stopped` | Handles qualifying container process exits while respecting deliberate stops |
+
+Together, these settings make the three-service deployment more predictable, but they are not a substitute for authenticated database checks, application-level retries, monitoring or robust recovery design.
+
+**Key learning outcome:** Startup order determines **which service starts first**; a health check helps establish **when a service is ready**; and a restart policy governs **how Docker handles process termination and deliberate stops**. Understanding their distinct responsibilities helped me move beyond simply launching containers toward reasoning about the reliability of the overall application.
 
 ---
 
