@@ -1,0 +1,50 @@
+services:
+
+  # Python Girls That Code — FastAPI application
+  chioma-python-app:
+    image: 159.89.153.232:8082/python-girls-that-code:1.0
+    ports:
+      - "8001:8000"
+    env_file:
+      - .env.docker
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # MongoDB database
+  mongodb:
+    image: mongo
+    ports:
+     - 27018:27017
+    env_file:
+      - .env.docker
+    volumes:
+     - chioma-mongo-data:/data/db    # defines a mapping between host-volume-name:path-inside-the-mongo-db-container. 
+                                     # this differs per db and should be the defualt path where the db stors its data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mongosh --quiet --eval "db.adminCommand('ping').ok" | grep -q 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped  
+
+  # Mongo Express — database administration UI  
+  mongo-express:
+    image: techworldwithnana/mongo-express
+    ports:
+     - 8083:8081
+    env_file:
+      - .env.docker
+    depends_on:
+     "mongodb":
+        condition: service_healthy
+    restart: unless-stopped
+
+# Persistent MongoDB storage
+volumes:              
+  chioma-mongo-data:  # this is the name of the host volume 
+    driver: local     # the actual storage path; this creates the physical storage on a local file system
