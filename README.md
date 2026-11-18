@@ -155,7 +155,7 @@ Before launching Compose, I **started the Nexus service** on the remote server s
 
 *Evidence 4 — Starting the Nexus service before deployment.*
 
-For a remote registry, Docker may also require `docker login`, and the client must be configured to permit this lab's HTTP registry if applicable. HTTP/insecure-registry configuration is **lab-specific**, not a recommended production deployment posture. Prefer HTTPS/TLS, appropriate credentials and a protected registry in real environments.
+For a remote registry, Docker may also require `docker login`, and the client must be configured to permit this project's HTTP registry if applicable. HTTP/insecure-registry configuration is **project-specific**, not a recommended production deployment posture. Prefer HTTPS/TLS, appropriate credentials and a protected registry in real environments.
 
 
 ---
@@ -194,7 +194,7 @@ mongodb:
     - chioma-mongo-data:/data/db
 ```
 
-`27018:27017` was the **actual lab mapping**. It allows direct host-based MongoDB client access, but is not needed for internal FastAPI or Mongo Express traffic. In a tighter deployment, I could omit it entirely or bind it to loopback only.
+`27018:27017` was the **actual project mapping**. It allows direct host-based MongoDB client access, but is not needed for internal FastAPI or Mongo Express traffic. In a tighter deployment, I could omit it entirely or bind it to loopback only.
 
 `chioma-mongo-data:/data/db` is a **named-volume mount**, not a Windows folder path. Docker manages the volume's underlying storage; `/data/db` is MongoDB's data directory **inside the container**. The top-level `volumes:` declaration defines the named volume, with the default `local` driver explicitly specified in this project.
 
@@ -215,7 +215,7 @@ mongo-express:
   restart: unless-stopped
 ```
 
-Mongo Express uses its MongoDB URL to connect to `mongodb:27017` on the internal network. Its separate browser-facing authentication settings protect access to the administration UI in this lab. The uploaded screenshots confirm the interface was accessible; image-specific environment support should be rechecked when upgrading or replacing the `techworldwithnana/mongo-express` image.
+Mongo Express uses its MongoDB URL to connect to `mongodb:27017` on the internal network. Its separate browser-facing authentication settings protect access to the administration UI in this project. The uploaded screenshots confirm the interface was accessible; image-specific environment support should be rechecked when upgrading or replacing the `techworldwithnana/mongo-express` image.
 
 ---
 
@@ -281,7 +281,7 @@ healthcheck:
 
 ### Why `restart: unless-stopped` rather than `always`?
 
-Both policies restart a container after unexpected process exit, once Docker's restart-policy conditions are met. The difference matters when a developer **deliberately stops** a container: `unless-stopped` respects that stop even across Docker daemon restarts, whereas `always` can restart a previously manually stopped container when the daemon restarts. I used `unless-stopped` for a lab I intentionally shut down between sessions.
+Both policies restart a container after unexpected process exit, once Docker's restart-policy conditions are met. The difference matters when a developer **deliberately stops** a container: `unless-stopped` respects that stop even across Docker daemon restarts, whereas `always` can restart a previously manually stopped container when the daemon restarts. I used `unless-stopped` for a project I intentionally shut down between sessions.
 
 **Correction to an early working note:** A restart policy does not inherently mean “Mongo Express keeps restarting until it connects to MongoDB,” nor does an `unhealthy` result alone trigger Docker's restart policy. The process must exit for the restart policy to act. The health-gated `depends_on` is the mechanism used here to coordinate initial readiness.
 
@@ -412,13 +412,13 @@ Containers are replaceable compute instances; their writable layers should not b
 - **Data persistence requires storage outside the container writable layer.** The named-volume test demonstrated survival across Compose teardown and recreation.
 - **Compose turns imperative steps into versioned configuration.** A single file records the application topology, while a separate untracked file supplies local environment values.
 
-### Improvements to consider beyond this completed lab
+### Improvements to consider beyond this completed project
 
 These are **recommendations, not claims of implemented work**:
 
 1. **Reduce exposure:** Omit the MongoDB host port if host-based clients are unnecessary; bind local-only UIs to `127.0.0.1` where appropriate.
 2. **Separate credentials:** Give each service only the variables it needs; use dedicated database users and a secret-management solution instead of sharing the root password.
-3. **Secure the registry:** Replace the lab HTTP connector with TLS and avoid hardcoding a public IP address into long-lived deployments.
+3. **Secure the registry:** Replace the project HTTP connector with TLS and avoid hardcoding a public IP address into long-lived deployments.
 4. **Pin image versions or digests:** `mongo` without a tag can resolve to different versions over time. Record compatible versions for reproducibility.
 5. **Improve readiness and observability:** Use a robust MongoDB health probe and consider application-specific checks, structured logs and monitoring.
 6. **Test resilience more thoroughly:** Verify behaviour under database unavailability, unexpected process exit, host reboot and restore from backup.
@@ -426,7 +426,7 @@ These are **recommendations, not claims of implemented work**:
 
 ---
 
-## 12 — Reproducing the Lab Safely
+## 12 — Reproducing the project Safely
 
 ```bash
 # 1. Clone the repository and enter it.
@@ -435,7 +435,7 @@ cd Dev7c-docker-compose-volumes
 
 # 2. Create local configuration (never commit it).
 cp .env.example .env.docker
-# Edit .env.docker with your lab credentials.
+# Edit .env.docker with your project credentials.
 
 # 3. Confirm Docker can access the private Nexus image.
 # If needed, authenticate and start the remote registry first.
@@ -453,7 +453,7 @@ docker compose ps
 docker compose down
 ```
 
-The image is hosted on a **private, lab-managed registry** and may not be publicly accessible or continuously online. This README documents the completed implementation; cloning the repository alone does not guarantee the remote registry is available to third parties. The included `.env.example` contains placeholders, not functioning credentials.
+The image is hosted on a **private, project-managed registry** and may not be publicly accessible or continuously online. This README documents the completed implementation; cloning the repository alone does not guarantee the remote registry is available to third parties. The included `.env.example` contains placeholders, not functioning credentials.
 
 
 
