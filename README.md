@@ -16,7 +16,7 @@ In Dev7a, I manually created and connected Docker containers for my Python Girls
 
 Two objectives here: replace repetitive `docker run` commands with reproducible service definitions, and ensure MongoDB data outlives the containers that use it. It also became a practical investigation into the distinction between *internal container ports*, *published Windows host ports* and *Compose's automatic service-name networking*.
 
-**Verified outcome:** The uploaded learning evidence shows Compose creating and starting the stack, the FastAPI interface loading on `localhost:8001`, Mongo Express serving its interface on `localhost:8083`, and user records remaining available after stopping/bringing down and recreating the stack. The later evidence includes a newly created second profile alongside the original record. See the implementation and validation screenshots below.
+**Verified outcome:** The uploaded evidence shows Compose creating and starting the stack, the FastAPI interface loading on `localhost:8001`, Mongo Express serving its interface on `localhost:8083`, and user records remaining available after stopping/bringing down and recreating the stack. The later evidence includes a newly created second profile alongside the original record. See the implementation and validation screenshots below.
 
 ### Project at a glance
 
