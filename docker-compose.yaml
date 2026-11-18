@@ -1,12 +1,12 @@
 services:
 
-  # Python Girls That Code — FastAPI application
+  # Python Girls That Code — FastAPI application (reused the FastAPI image published to Nexus in Dev7b)
   chioma-python-app:
     image: 159.89.153.232:8082/python-girls-that-code:1.0
     ports:
-      - "8001:8000"
+      - "8001:8000"     # Windows host -> FastAPI container
     env_file:
-      - .env.docker
+      - .env.docker     # Supplies MONGO_URI to the application
     depends_on:
       mongodb:
         condition: service_healthy
@@ -16,11 +16,12 @@ services:
   mongodb:
     image: mongo
     ports:
-     - 27018:27017
+     - 27018:27017      # Published here, but optional for internal access
     env_file:
       - .env.docker
     volumes:
-     - chioma-mongo-data:/data/db    # defines a mapping between host-volume-name:path-inside-the-mongo-db-container. 
+     - chioma-mongo-data:/data/db    # MongoDB's persistent data directory
+                                     # defines a mapping between host-volume-name:path-inside-the-mongo-db-container. 
                                      # this differs per db and should be the defualt path where the db stors its data
     healthcheck:
       test:
@@ -36,7 +37,7 @@ services:
   mongo-express:
     image: techworldwithnana/mongo-express
     ports:
-     - 8083:8081
+     - 8083:8081     # Windows browser -> Mongo Express UI
     env_file:
       - .env.docker
     depends_on:
