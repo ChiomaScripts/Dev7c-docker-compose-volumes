@@ -157,15 +157,6 @@ Before launching Compose, I **started the Nexus service** on the remote server s
 
 For a remote registry, Docker may also require `docker login`, and the client must be configured to permit this lab's HTTP registry if applicable. HTTP/insecure-registry configuration is **lab-specific**, not a recommended production deployment posture. Prefer HTTPS/TLS, appropriate credentials and a protected registry in real environments.
 
-### Preparing the repository
-
-```bash
-mkdir -p Dev7c-docker-compose-volumes
-cd Dev7c-docker-compose-volumes
-cp .env.example .env.docker
-```
-
-Replace the placeholders in `.env.docker` with local lab values. **Do not commit this file**. Ensure the MongoDB password is consistent across the initialisation variable and both MongoDB URLs; if a password contains URI-reserved characters, URL-encode it in the connection strings.
 
 ---
 
