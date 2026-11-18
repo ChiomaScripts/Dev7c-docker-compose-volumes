@@ -373,7 +373,7 @@ docker compose logs
 
 Because the file was named `docker-compose.yaml` and the command ran from the project directory, the `-f` argument was unnecessary. For another filename or directory, use `docker compose -f path/to/file.yaml ...`.
 
-![Docker Compose creating and starting the three services](assets/screenshots/compose-up-and-container-status.png)
+![Docker Compose creating and starting the three services in detached mode](assets/screenshots/compose-up-d-and-ps.png)
 
 *Evidence 5 — Initial Compose startup and service-status output.*
 
@@ -428,9 +428,11 @@ docker compose logs
 docker volume ls
 ```
 
+![Docker Compose re-creating and re-starting the three services in attached mode](assets/screenshots/compose-down-up-again-and-container-status.png)
+
 ![Service logs after restarting the Compose application](assets/screenshots/compose-restart-service-logs.png)
 
-*Evidence 9 — Application and supporting service logs during the restart/persistence exercise.*
+*Evidence 9b — Application and supporting service logs during the restart/persistence exercise.*
 
 ![Original and new records visible after restarting](assets/screenshots/mongo-express-persisted-records.png)
 
