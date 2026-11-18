@@ -10,7 +10,7 @@
 
 ---
 
-## 01 — Executive Summary
+## 01 — Project Overview
 
 In Dev7a, I manually created and connected Docker containers for my Python Girls That Code FastAPI CRUD application, MongoDB and Mongo Express. In Dev7b, I published the application image to a self-hosted Sonatype Nexus Docker registry on a DigitalOcean server. Dev7c brings those two projects together: **a single declarative Compose file launches the existing image and its supporting services as one application stack**.
 
